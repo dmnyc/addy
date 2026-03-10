@@ -170,7 +170,7 @@ export async function backupSparkToNostr(
 export async function listSparkBackups(
   pubkey: string,
 ): Promise<SparkBackupEntry[]> {
-  const ndk = getNDK();
+  const ndk = await ensureNDK();
 
   const filter = {
     kinds: [BACKUP_EVENT_KIND],

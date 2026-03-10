@@ -115,7 +115,11 @@ export async function connectWithNip07(): Promise<NDKUser> {
   }
 
   currentUser = user;
-  loadUserRelays(user.pubkey).catch(() => {});
+  try {
+    await withTimeout(loadUserRelays(user.pubkey), 8000, "User relay list load");
+  } catch (err) {
+    console.warn("Failed to load user relays:", err);
+  }
 
   return user;
 }
@@ -138,7 +142,11 @@ export async function connectWithPrivateKey(
   }
 
   currentUser = user;
-  loadUserRelays(user.pubkey).catch(() => {});
+  try {
+    await withTimeout(loadUserRelays(user.pubkey), 8000, "User relay list load");
+  } catch (err) {
+    console.warn("Failed to load user relays:", err);
+  }
 
   return user;
 }
