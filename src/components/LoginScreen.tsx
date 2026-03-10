@@ -136,6 +136,7 @@ export function LoginScreen({
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-base p-4">
+      <div className="flex flex-col items-center">
       <div className="w-full max-w-md bg-surface-card rounded-2xl p-8 shadow-xl border border-border-subtle">
         <div className="text-center mb-8">
           <img src="/addy-logos/addy-logo-color.svg" alt="Addy" className="h-14 mx-auto mb-4" />
@@ -379,7 +380,8 @@ export function LoginScreen({
           </div>
         )}
       </div>
-      <p className="text-gray-500 text-xs text-center mt-6">Built with Breez SDK Spark</p>
+      <p className="text-gray-500 text-xs text-center mt-4">Built with Breez SDK Spark</p>
+      </div>
     </div>
   );
 }
