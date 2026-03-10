@@ -341,8 +341,8 @@ async function _initializeSdkInternal(
     console.log("[Spark] SDK initialized, starting background sync...");
     notifyListeners();
 
-    // Background sync
-    withTimeout(_sdkInstance.syncWallet({}), 30000, "Background sync")
+    // Background sync — balance updates reactively via synced event
+    withTimeout(_sdkInstance.syncWallet({}), 10000, "Background sync")
       .then(() => {
         console.log("[Spark] Background sync completed");
         _hasSynced = true;
@@ -350,7 +350,12 @@ async function _initializeSdkInternal(
       })
       .catch(() => {
         console.warn("[Spark] Background sync failed/timed out");
-      });
+        // Even if sync timed out, the SDK may have partial state —
+        // mark synced and refresh so we don't suppress a valid balance
+        _hasSynced = true;
+        refreshBalanceInternal();
+      })
+      ;
 
     fetchLightningAddress().catch(() => {});
 
@@ -475,7 +480,7 @@ export function isSparkInitialized(): boolean {
 export async function getSparkBalance(
   forceSync = false,
 ): Promise<number | null> {
-  if (!_sdkInstance) throw new Error("Spark SDK not initialized");
+  if (!_sdkInstance) return _walletBalance ?? null;
 
   if (forceSync) {
     try {
