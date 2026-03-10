@@ -57,35 +57,6 @@ export function BackupRestore({
     }
   }, [identifier]);
 
-  const handleDownloadBackup = useCallback(async () => {
-    const loaded = mnemonic || (await loadMnemonic(identifier));
-    if (!loaded) {
-      setError("Could not load mnemonic");
-      return;
-    }
-
-    const date = new Date().toISOString().split("T")[0];
-    const words = loaded.split(" ");
-    const content = `Addy - Wallet Recovery Phrase
-Generated: ${new Date().toLocaleString()}
-
-Recovery Phrase (${words.length} words):
-${words.map((w, i) => `${i + 1}. ${w}`).join("\n")}
-
-WARNING: Never share these words with anyone.
-Anyone with this phrase can access your wallet funds.`;
-
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `addy-wallet-backup-${date}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setSuccess("Backup file downloaded");
-    setTimeout(() => setSuccess(null), 3000);
-  }, [identifier, mnemonic]);
-
   const handleBackupToNostr = useCallback(async () => {
     if (!isNostrUser) return;
     setLoading(true);
@@ -233,13 +204,6 @@ Anyone with this phrase can access your wallet funds.`;
               Show Recovery Phrase
             </button>
 
-            <button
-              className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-white transition-colors"
-              onClick={handleDownloadBackup}
-            >
-              Download Backup File
-            </button>
-
             {isNostrUser && (
               <>
                 <button
@@ -381,12 +345,6 @@ Anyone with this phrase can access your wallet funds.`;
               </button>
             )}
 
-            <button
-              className="w-full bg-surface-raised border border-border-subtle text-gray-300 rounded-lg px-4 py-3 hover:bg-surface-input transition-colors"
-              onClick={handleDownloadBackup}
-            >
-              Download Backup File
-            </button>
           </div>
         )}
 

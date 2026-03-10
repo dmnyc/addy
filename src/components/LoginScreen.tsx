@@ -158,7 +158,7 @@ export function LoginScreen({
               onClick={handleExtensionConnect}
               disabled={isConnecting}
             >
-              <div className="w-10 h-10 rounded-full bg-brand-blue flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-brand-purple flex items-center justify-center shrink-0">
                 <BoltIcon className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -207,7 +207,7 @@ export function LoginScreen({
               className="w-full flex items-center gap-4 bg-surface-raised hover:bg-surface-input border border-border-subtle rounded-xl px-5 py-4 text-left transition-colors"
               onClick={handleSkip}
             >
-              <div className="w-10 h-10 rounded-full bg-brand-purple flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center shrink-0">
                 <ArrowRightIcon className="w-5 h-5 text-white" />
               </div>
               <div>

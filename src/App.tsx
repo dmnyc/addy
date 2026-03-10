@@ -171,10 +171,8 @@ function App() {
     await wallet.disconnect();
     nostr.disconnect();
     clearAllWallets();
-    localStorage.removeItem("addy_skip_identifier");
-    setWalletIdentifier(null);
-    setWalletError(null);
-    setView("login");
+    localStorage.clear();
+    window.location.reload();
   }, [wallet, nostr]);
 
   // Render based on current view
