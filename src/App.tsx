@@ -9,7 +9,7 @@ import { ReceivePayment } from "./components/ReceivePayment";
 import { TransactionHistory } from "./components/TransactionHistory";
 import { BackupRestore } from "./components/BackupRestore";
 import { registerLightningAddress } from "./wallet/spark";
-import { deleteMnemonic } from "./wallet/storage";
+import { deleteMnemonic, loadMnemonic, saveMnemonic } from "./wallet/storage";
 import { restoreSparkFromNostr } from "./wallet/backup";
 import type { AppView } from "./types";
 
@@ -72,8 +72,31 @@ function App() {
   }, [walletIdentifier, nostr.isConnected, wallet.initialized]);
 
   const handleNostrConnected = useCallback(async (pubkey: string) => {
-    setWalletIdentifier(pubkey);
     setView("loading");
+
+    // If wallet is already running (connecting Nostr from dashboard),
+    // migrate the mnemonic from the skip identifier to the Nostr pubkey
+    if (wallet.initialized) {
+      const oldSkipId = localStorage.getItem("addy_skip_identifier");
+      if (oldSkipId) {
+        try {
+          const mnemonic = await loadMnemonic(oldSkipId);
+          if (mnemonic) {
+            // Re-save under pubkey (will NIP-44 encrypt since Nostr user is now set)
+            await saveMnemonic(pubkey, mnemonic);
+            deleteMnemonic(oldSkipId);
+            localStorage.removeItem("addy_skip_identifier");
+            setWalletIdentifier(pubkey);
+            setView("dashboard");
+            return;
+          }
+        } catch (err) {
+          console.error("[App] Failed to migrate wallet to Nostr identity:", err);
+        }
+      }
+    }
+
+    setWalletIdentifier(pubkey);
 
     // Check if wallet already exists locally
     if (wallet.hasWallet(pubkey)) {
