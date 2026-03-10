@@ -139,7 +139,7 @@ export function LoginScreen({
       <div className="w-full max-w-md bg-surface-card rounded-2xl p-8 shadow-xl border border-border-subtle">
         <div className="text-center mb-8">
           <img src="/addy-logos/addy-logo-color.svg" alt="Addy" className="h-14 mx-auto mb-4" />
-          <p className="text-pastel-blue text-sm font-medium">Lightning Wallet Generator</p>
+          <p className="text-pastel-blue text-sm font-medium">Quick Lightning Wallet Generator</p>
           <p className="text-gray-500 text-xs mt-3">Choose a Nostr login method</p>
         </div>
 
@@ -379,6 +379,7 @@ export function LoginScreen({
           </div>
         )}
       </div>
+      <p className="text-gray-500 text-xs text-center mt-6">Built with Breez SDK Spark</p>
     </div>
   );
 }
