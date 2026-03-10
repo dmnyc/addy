@@ -32,6 +32,7 @@ export type AuthMethod = "nip07" | "private-key" | null;
 
 export type AppView =
   | "login"
+  | "loading"
   | "mnemonic-backup"
   | "dashboard"
   | "send"

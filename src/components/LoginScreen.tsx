@@ -381,6 +381,7 @@ export function LoginScreen({
         )}
       </div>
       <p className="text-gray-500 text-xs text-center mt-4">Built with Breez SDK Spark</p>
+      <p className="text-gray-600 text-xs text-center mt-1">v{__APP_VERSION__} ({__BUILD_HASH__})</p>
       </div>
     </div>
   );

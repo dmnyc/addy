@@ -10,6 +10,7 @@ import { TransactionHistory } from "./components/TransactionHistory";
 import { BackupRestore } from "./components/BackupRestore";
 import { registerLightningAddress } from "./wallet/spark";
 import { clearAllWallets, deleteMnemonic } from "./wallet/storage";
+import { restoreSparkFromNostr } from "./wallet/backup";
 import type { AppView } from "./types";
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
     if (nostr.isConnected && nostr.user?.pubkey && !wallet.initialized) {
       const pubkey = nostr.user.pubkey;
       setWalletIdentifier(pubkey);
+      // Only auto-load if we have a local mnemonic (localStorage)
       if (wallet.hasWallet(pubkey)) {
         isAutoLoading.current = true;
         wallet.loadWallet(pubkey).then((loaded) => {
@@ -47,6 +49,7 @@ function App() {
           isAutoLoading.current = false;
         });
       }
+      // If no local wallet, don't auto-create — let user go through handleNostrConnected
     }
   }, [nostr.isConnected, nostr.user?.pubkey, wallet.initialized]);
 
@@ -68,29 +71,59 @@ function App() {
     }
   }, [walletIdentifier, nostr.isConnected, wallet.initialized]);
 
-  const handleNostrConnected = useCallback((pubkey: string) => {
+  const handleNostrConnected = useCallback(async (pubkey: string) => {
     setWalletIdentifier(pubkey);
+    setView("loading");
 
-    // Check if wallet already exists
+    // Check if wallet already exists locally
     if (wallet.hasWallet(pubkey)) {
       wallet.loadWallet(pubkey).then((loaded) => {
         if (loaded) {
           setView("dashboard");
         } else {
-          // Wallet exists but failed to load — create new
           startWalletCreation(pubkey);
         }
-      }).catch(() => {
-        startWalletCreation(pubkey);
+      }).catch((err) => {
+        console.error("Failed to load wallet:", err);
+        setWalletError(err instanceof Error ? err.message : "Failed to load wallet");
+        setView("login");
       });
-    } else {
-      startWalletCreation(pubkey);
+      return;
     }
+
+    // No local wallet — check for Nostr backup before creating new
+    try {
+      setWalletError(null);
+      const mnemonic = await restoreSparkFromNostr(pubkey);
+      if (mnemonic) {
+        isImporting.current = true;
+        wallet.importWallet(pubkey, mnemonic).then((success) => {
+          isImporting.current = false;
+          if (success) {
+            setView("dashboard");
+          } else {
+            setWalletError("Failed to restore wallet from backup");
+            setView("login");
+          }
+        }).catch((err) => {
+          isImporting.current = false;
+          console.error("Failed to restore wallet:", err);
+          setWalletError(err instanceof Error ? err.message : "Failed to restore wallet");
+          setView("login");
+        });
+        return;
+      }
+    } catch {
+      // Backup check failed — proceed to create new wallet
+    }
+
+    startWalletCreation(pubkey);
   }, [wallet]);
 
   const handleSkip = useCallback(
     (identifier: string) => {
       setWalletIdentifier(identifier);
+      setView("loading");
       startWalletCreation(identifier);
     },
     [],
@@ -134,6 +167,7 @@ function App() {
       .catch((err) => {
         console.error("Failed to create wallet:", err);
         setWalletError(err instanceof Error ? err.message : "Failed to create wallet");
+        setView("login");
       });
   }
 
@@ -168,10 +202,26 @@ function App() {
   }, [wallet, nostr, walletIdentifier]);
 
   const handleDeleteWallet = useCallback(async () => {
-    await wallet.disconnect();
-    nostr.disconnect();
-    clearAllWallets();
+    try { await wallet.disconnect(); } catch {}
+    try { nostr.disconnect(); } catch {}
     localStorage.clear();
+    sessionStorage.clear();
+    // Clear IndexedDB (Breez SDK stores wallet data there)
+    try {
+      const databases = await indexedDB.databases();
+      for (const db of databases) {
+        if (db.name) {
+          indexedDB.deleteDatabase(db.name);
+        }
+      }
+    } catch {}
+    // Clear all caches
+    try {
+      const keys = await caches.keys();
+      for (const key of keys) {
+        await caches.delete(key);
+      }
+    } catch {}
     window.location.reload();
   }, [wallet, nostr]);
 
@@ -189,6 +239,16 @@ function App() {
           connectWithPrivateKey={nostr.connectWithPrivateKey}
           generateKeypair={nostr.generateKeypair}
         />
+      );
+
+    case "loading":
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-surface-base">
+          <div className="text-center">
+            <img src="/addy-logos/addy-logo-color.svg" alt="Addy" className="h-14 mx-auto mb-4" />
+            <p className="text-gray-400 text-sm">Loading wallet...</p>
+          </div>
+        </div>
       );
 
     case "mnemonic-backup":

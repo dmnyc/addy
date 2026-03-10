@@ -6,7 +6,7 @@
  */
 
 import { NDKEvent, NDKRelaySet } from "@nostr-dev-kit/ndk";
-import { getNDK } from "../nostr/client";
+import { getNDK, ensureNDK } from "../nostr/client";
 import { getEncryptionProvider } from "../nostr/encryption";
 import { loadMnemonic } from "./storage";
 import { sha256 } from "@noble/hashes/sha2";
@@ -131,7 +131,7 @@ export async function backupSparkToNostr(
     throw new Error("No mnemonic to backup");
   }
 
-  const ndk = getNDK();
+  const ndk = await ensureNDK();
   const walletId = getSparkWalletId(mnemonicToBackup);
 
   console.log("[Backup] Encrypting mnemonic with NIP-44...");
@@ -150,13 +150,17 @@ export async function backupSparkToNostr(
   await withTimeout(ndkEvent.sign(), NIP07_OPERATION_TIMEOUT, "Event signing");
 
   console.log("[Backup] Publishing backup to Nostr relays...");
-  await withTimeout(
+  const relays = await withTimeout(
     ndkEvent.publish(),
     RELAY_FETCH_TIMEOUT,
     "Event publishing",
   );
 
-  console.log("[Backup] Mnemonic backed up to Nostr successfully");
+  if (!relays || relays.size === 0) {
+    throw new Error("Backup failed: no relays accepted the event. Check relay connections.");
+  }
+
+  console.log(`[Backup] Mnemonic backed up to ${relays.size} relay(s)`);
   return ndkEvent;
 }
 
@@ -287,7 +291,7 @@ export async function checkBackupRelays(
   const checks = relayUrls.map(async (url) => {
     try {
       const relay = ndk.pool.relays.get(url);
-      if (!relay || relay.status !== 1) {
+      if (!relay) {
         results.set(url, false);
         return;
       }
