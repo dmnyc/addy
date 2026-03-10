@@ -9,7 +9,7 @@ import { ReceivePayment } from "./components/ReceivePayment";
 import { TransactionHistory } from "./components/TransactionHistory";
 import { BackupRestore } from "./components/BackupRestore";
 import { registerLightningAddress } from "./wallet/spark";
-import { clearAllWallets, deleteMnemonic } from "./wallet/storage";
+import { deleteMnemonic } from "./wallet/storage";
 import { restoreSparkFromNostr } from "./wallet/backup";
 import type { AppView } from "./types";
 
