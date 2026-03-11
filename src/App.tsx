@@ -208,10 +208,17 @@ function App() {
     }
   }, []);
 
-  const handleMnemonicCancel = useCallback(() => {
+  const handleMnemonicCancel = useCallback(async () => {
+    if (walletIdentifier) {
+      deleteMnemonic(walletIdentifier);
+    }
+    await wallet.disconnect();
+    localStorage.removeItem("addy_skip_identifier");
+    isNewWallet.current = false;
     setPendingMnemonic(null);
+    setWalletIdentifier(null);
     setView("login");
-  }, []);
+  }, [wallet, walletIdentifier]);
 
   const handleDisconnect = useCallback(async () => {
     if (walletIdentifier) {
