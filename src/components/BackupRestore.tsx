@@ -35,6 +35,7 @@ export function BackupRestore({
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [importPhrase, setImportPhrase] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteBackupConfirm, setShowDeleteBackupConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -320,7 +321,7 @@ export function BackupRestore({
                     disabled={checkingRelays}
                   >
                     <span>{checkingRelays ? "Checking relays..." : "Relay Backup Status"}</span>
-                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${!relayStatus ? "bg-gray-600" : Array.from(relayStatus.values()).every(v => v) ? "bg-brand-green" : Array.from(relayStatus.values()).some(v => v) ? "bg-brand-orange" : "bg-gray-600"}`} />
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${!relayStatus ? "bg-gray-600" : Array.from(relayStatus.values()).every(v => v) ? "bg-brand-green" : Array.from(relayStatus.values()).some(v => v) ? "bg-yellow-500" : "bg-gray-600"}`} />
                   </button>
                   {relayStatusOpen && relayStatus && (
                     <div className="border-t border-border-subtle px-5 py-3 space-y-2">
@@ -351,19 +352,47 @@ export function BackupRestore({
                   Restore from Nostr
                 </button>
 
-                <button
-                  className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-brand-orange transition-colors disabled:opacity-50"
-                  onClick={handleDeleteBackup}
-                  disabled={loading}
-                >
-                  Delete Nostr Backup
-                </button>
               </>
             )}
 
             {/* Danger Zone */}
-            <div className="pt-4 border-t border-red-900/30 mt-6">
+            <div className="pt-4 border-t border-red-900/30 mt-6 space-y-2">
               <p className="text-red-400/60 text-xs font-medium mb-2">Danger Zone</p>
+
+              {isNostrUser && (
+                !showDeleteBackupConfirm ? (
+                  <button
+                    className="w-full bg-surface-card hover:bg-red-950/30 border border-red-900/30 rounded-xl px-5 py-4 text-left text-red-400 transition-colors disabled:opacity-50"
+                    onClick={() => setShowDeleteBackupConfirm(true)}
+                    disabled={loading}
+                  >
+                    Delete Nostr Backup
+                  </button>
+                ) : (
+                  <div className="bg-red-950/20 border border-red-900/40 rounded-xl px-5 py-4 space-y-3">
+                    <p className="text-red-400 text-sm font-medium">Delete relay backup?</p>
+                    <p className="text-red-400/70 text-xs">
+                      This will remove your wallet backup from Nostr relays. You won't be able to restore from relays until you back up again.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        className="flex-1 bg-surface-raised border border-border-subtle text-gray-300 rounded-lg px-3 py-2 text-sm hover:bg-surface-input transition-colors"
+                        onClick={() => setShowDeleteBackupConfirm(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="flex-1 bg-red-600 text-white rounded-lg px-3 py-2 text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+                        onClick={() => { handleDeleteBackup(); setShowDeleteBackupConfirm(false); }}
+                        disabled={loading}
+                      >
+                        Delete Backup
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
+
               {!showDeleteConfirm ? (
                 <button
                   className="w-full bg-surface-card hover:bg-red-950/30 border border-red-900/30 rounded-xl px-5 py-4 text-left text-red-400 transition-colors"

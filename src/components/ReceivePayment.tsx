@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { createSparkInvoice, getSparkLightningAddress } from "../wallet/spark";
+import { createSparkInvoice, getSparkLightningAddress, onSparkEvent } from "../wallet/spark";
+import { BoltIcon } from "./icons/LoginIcons";
 
 interface ReceivePaymentProps {
   onBack: () => void;
@@ -29,8 +30,26 @@ export function ReceivePayment({ onBack }: ReceivePaymentProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const [paidAmount, setPaidAmount] = useState<number | null>(null);
 
   const lightningAddress = getSparkLightningAddress();
+
+  // Listen for payment received
+  useEffect(() => {
+    if (!invoice) return;
+    const unsubscribe = onSparkEvent((event: any) => {
+      if (event.type === "paymentSucceeded" && event.payment) {
+        const payment = event.payment;
+        if (payment.paymentType === "receive" || payment.payment_type === "receive") {
+          setPaid(true);
+          const amt = payment.amountSat ?? payment.amount_sat ?? payment.amount;
+          if (amt != null) setPaidAmount(Number(amt));
+        }
+      }
+    });
+    return unsubscribe;
+  }, [invoice]);
 
   const handlePresetClick = useCallback((preset: number) => {
     setSelectedPreset(preset);
@@ -119,44 +138,66 @@ export function ReceivePayment({ onBack }: ReceivePaymentProps) {
 
         {/* Invoice */}
         {invoice ? (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl p-4 flex items-center justify-center">
-              <QRCodeSVG
-                value={invoice}
-                size={240}
-                bgColor="#ffffff"
-                fgColor="#000000"
-                level="H"
-                imageSettings={QR_IMAGE_SETTINGS}
-              />
+          paid ? (
+            <div className="space-y-4 text-center py-8">
+              <div className="flex justify-center mb-2">
+                <BoltIcon className="w-14 h-14 text-yellow-400" />
+              </div>
+              <h3 className="text-white text-xl font-bold">Payment Received!</h3>
+              {paidAmount != null && (
+                <p className="text-pastel-green text-lg font-medium">{paidAmount.toLocaleString()} sats</p>
+              )}
+              <button
+                className="w-full bg-brand-green text-white rounded-lg px-4 py-3 hover:bg-brand-green/80 transition-colors font-medium mt-4"
+                onClick={onBack}
+              >
+                Done
+              </button>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl p-4 flex items-center justify-center">
+                <QRCodeSVG
+                  value={invoice}
+                  size={240}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  level="H"
+                  imageSettings={QR_IMAGE_SETTINGS}
+                />
+              </div>
 
-            <div className="bg-surface-raised rounded-lg px-4 py-3">
-              <p className="text-gray-400 text-xs mb-1">Invoice</p>
-              <p className="text-white text-xs font-mono break-all">
-                {invoice.substring(0, 60)}...
-              </p>
+              <div className="bg-surface-raised rounded-lg px-4 py-3">
+                <p className="text-gray-400 text-xs mb-1">Invoice</p>
+                <p className="text-white text-xs font-mono break-all">
+                  {invoice.substring(0, 60)}...
+                </p>
+              </div>
+
+              <p className="text-gray-500 text-xs text-center">Waiting for payment...</p>
+
+              <button
+                className="w-full bg-brand-blue text-white rounded-lg px-4 py-3 hover:bg-brand-blue/80 transition-colors"
+                onClick={copyInvoice}
+              >
+                {copied ? "Copied!" : "Copy Invoice"}
+              </button>
+
+              <button
+                className="w-full bg-surface-raised border border-border-subtle text-gray-300 rounded-lg px-4 py-3 hover:bg-surface-input transition-colors"
+                onClick={() => {
+                  setInvoice(null);
+                  setPaid(false);
+                  setPaidAmount(null);
+                  setAmount("");
+                  setSelectedPreset(null);
+                  setDescription("");
+                }}
+              >
+                Create New Invoice
+              </button>
             </div>
-
-            <button
-              className="w-full bg-brand-blue text-white rounded-lg px-4 py-3 hover:bg-brand-blue/80 transition-colors"
-              onClick={copyInvoice}
-            >
-              {copied ? "Copied!" : "Copy Invoice"}
-            </button>
-
-            <button
-              className="w-full bg-surface-raised border border-border-subtle text-gray-300 rounded-lg px-4 py-3 hover:bg-surface-input transition-colors"
-              onClick={() => {
-                setInvoice(null);
-                setAmount("");
-                setSelectedPreset(null);
-                setDescription("");
-              }}
-            >
-              Create New Invoice
-            </button>
-          </div>
+          )
         ) : (
           <div className="space-y-4">
             <div>
