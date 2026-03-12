@@ -277,7 +277,7 @@ export function LoginScreen({
                 </button>
               </div>
               <div className="bg-surface-input border border-border-subtle rounded-lg px-4 py-3 text-sm font-mono break-all flex items-start gap-2">
-                <span className={`flex-1 min-w-0 ${showPrivateKey ? "text-white" : "text-gray-600"}`}>
+                <span className={`flex-1 min-w-0 overflow-hidden ${showPrivateKey ? "text-white break-all" : "text-gray-600 truncate"}`}>
                   {showPrivateKey
                     ? generatedKeys.nsec
                     : "••••••••••••••••••••••••••••••••••••••••"}
