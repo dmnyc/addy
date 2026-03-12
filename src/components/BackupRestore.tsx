@@ -43,6 +43,7 @@ export function BackupRestore({
 
   const [showNsec, setShowNsec] = useState(false);
   const [nsecCopied, setNsecCopied] = useState(false);
+  const [nsecSeen, setNsecSeen] = useState(localStorage.getItem("addy_nsec_seen") === "true");
   const [backupConfirmed, setBackupConfirmed] = useState(false);
 
   const isNostrUser = authMethod === "nip07" || authMethod === "private-key";
@@ -223,10 +224,17 @@ export function BackupRestore({
             {isPrivateKeyUser && nsecKey && (
               <div className="bg-surface-card border border-border-subtle rounded-xl overflow-hidden">
                 <button
-                  className="w-full px-5 py-4 text-left text-white hover:bg-surface-raised transition-colors"
-                  onClick={() => setShowNsec(!showNsec)}
+                  className="w-full px-5 py-4 text-left text-white hover:bg-surface-raised transition-colors flex items-center justify-between"
+                  onClick={() => {
+                    if (!showNsec) {
+                      localStorage.setItem("addy_nsec_seen", "true");
+                      setNsecSeen(true);
+                    }
+                    setShowNsec(!showNsec);
+                  }}
                 >
-                  Show Nostr Private Key (nsec)
+                  <span>Show Nostr Private Key (nsec)</span>
+                  {!nsecSeen && <span title="Nsec not yet viewed">⚠️</span>}
                 </button>
                 {showNsec && (
                   <div className="border-t border-border-subtle px-5 py-4 space-y-3">
