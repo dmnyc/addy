@@ -136,8 +136,8 @@ export function LoginScreen({
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-base p-4">
-      <div className="flex flex-col items-center">
-      <div className="w-full max-w-md bg-surface-card rounded-2xl p-8 shadow-xl border border-border-subtle">
+      <div className="flex flex-col items-center w-full max-w-md">
+      <div className="w-full max-w-md bg-surface-card rounded-2xl p-8 shadow-xl border border-border-subtle overflow-hidden">
         <div className="text-center mb-8">
           <img src="/addy-logos/addy-logo-color.svg" alt="Addy" className="h-14 mx-auto mb-4" />
           <p className="text-pastel-blue text-sm font-medium">Quick Lightning Wallet Generator</p>
@@ -294,7 +294,7 @@ export function LoginScreen({
             <div>
               <span className="text-gray-400 text-sm mb-1 block">Public Key</span>
               <div className="bg-surface-input border border-border-subtle rounded-lg px-4 py-3 text-sm font-mono break-all text-white flex items-start gap-2">
-                <span className="flex-1">{generatedKeys.npub}</span>
+                <span className="flex-1 min-w-0 break-all">{generatedKeys.npub}</span>
                 <button
                   className="text-pastel-blue text-xs shrink-0 hover:text-brand-blue"
                   onClick={() => copyToClipboard(generatedKeys.npub, "npub")}
