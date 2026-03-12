@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { nip19 } from "nostr-tools";
 import { hexToBytes } from "@noble/hashes/utils";
 import { loadMnemonic } from "../wallet/storage";
@@ -18,6 +18,7 @@ interface BackupRestoreProps {
   authMethod: AuthMethod;
   onBack: () => void;
   onDeleteWallet: () => void;
+  onConnectNostr?: () => void;
 }
 
 type SubView = "main" | "show-mnemonic" | "import-phrase" | "nostr-backups";
@@ -27,6 +28,7 @@ export function BackupRestore({
   authMethod,
   onBack,
   onDeleteWallet,
+  onConnectNostr,
 }: BackupRestoreProps) {
   const [subView, setSubView] = useState<SubView>("main");
   const [mnemonic, setMnemonic] = useState<string | null>(null);
@@ -48,6 +50,16 @@ export function BackupRestore({
 
   const isNostrUser = authMethod === "nip07" || authMethod === "private-key";
   const isPrivateKeyUser = authMethod === "private-key";
+
+  // Auto-check relay status on mount for Nostr users
+  useEffect(() => {
+    if (!isNostrUser) return;
+    const user = getCurrentUser();
+    if (!user?.pubkey) return;
+    checkBackupRelays(user.pubkey).then((status) => {
+      setRelayStatus(status);
+    }).catch(() => {});
+  }, [isNostrUser]);
   const apiKey = import.meta.env.VITE_BREEZ_SPARK_API_KEY || "";
 
   const storedPrivateKey = isPrivateKeyUser
@@ -81,6 +93,7 @@ export function BackupRestore({
       if (!user?.pubkey) throw new Error("Not logged in");
       await backupSparkToNostr(user.pubkey);
       localStorage.setItem("addy_seed_backed_up", "true");
+      localStorage.setItem("addy_nostr_backed_up", "true");
       setSuccess("Wallet backed up to Nostr relays");
       setTimeout(() => setSuccess(null), 3000);
       // Refresh relay status after backup
@@ -177,8 +190,13 @@ export function BackupRestore({
       const user = getCurrentUser();
       if (!user?.pubkey) throw new Error("Not logged in");
       await deleteSparkBackupFromNostr(user.pubkey);
+      localStorage.removeItem("addy_nostr_backed_up");
       setSuccess("Backup deleted from Nostr");
       setTimeout(() => setSuccess(null), 3000);
+      // Refresh relay status after delete
+      checkBackupRelays(user.pubkey).then((status) => {
+        setRelayStatus(status);
+      }).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     } finally {
@@ -189,14 +207,14 @@ export function BackupRestore({
   return (
     <div className="min-h-screen bg-surface-base p-4">
       <div className="max-w-md mx-auto">
-        <div className="flex items-center gap-3 mb-6 pt-4">
+        <div className="flex items-center justify-between mb-6 pt-4">
+          <img src="/addy-logos/addy-logo-white.svg" alt="Addy" className="h-6 cursor-pointer" onClick={onBack} />
           <button
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 text-sm hover:text-white transition-colors"
             onClick={subView === "main" ? onBack : () => setSubView("main")}
           >
             &larr; Back
           </button>
-          <h2 className="text-xl font-bold text-white">Backup &amp; Recovery</h2>
         </div>
 
         {error && (
@@ -264,14 +282,29 @@ export function BackupRestore({
               </div>
             )}
 
+            {!isNostrUser && (
+              <div className="bg-surface-card border border-border-subtle rounded-xl px-5 py-4">
+                <p className="text-gray-400 text-sm mb-3">
+                  Connect to Nostr to back up your wallet to relays and restore it on any device.
+                </p>
+                <button
+                  className="w-full bg-brand-purple text-white rounded-lg px-4 py-3 hover:bg-brand-purple/80 transition-colors font-medium text-sm"
+                  onClick={onConnectNostr || onBack}
+                >
+                  Connect to Nostr
+                </button>
+              </div>
+            )}
+
             {isNostrUser && (
               <>
                 <button
-                  className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-white transition-colors disabled:opacity-50"
+                  className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-white transition-colors disabled:opacity-50 flex items-center justify-between"
                   onClick={handleBackupToNostr}
                   disabled={loading}
                 >
-                  {loading ? "Backing up..." : "Backup to Nostr"}
+                  <span>{loading ? "Backing up..." : "Backup to Nostr"}</span>
+                  {localStorage.getItem("addy_nostr_backed_up") !== "true" && <span title="Not backed up to relays">⚠️</span>}
                 </button>
 
                 <div className="bg-surface-card border border-border-subtle rounded-xl overflow-hidden">
@@ -287,17 +320,15 @@ export function BackupRestore({
                     disabled={checkingRelays}
                   >
                     <span>{checkingRelays ? "Checking relays..." : "Relay Backup Status"}</span>
-                    <span className="text-gray-500 text-sm">{relayStatusOpen ? "▲" : "▼"}</span>
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${!relayStatus ? "bg-gray-600" : Array.from(relayStatus.values()).every(v => v) ? "bg-brand-green" : Array.from(relayStatus.values()).some(v => v) ? "bg-brand-orange" : "bg-gray-600"}`} />
                   </button>
                   {relayStatusOpen && relayStatus && (
                     <div className="border-t border-border-subtle px-5 py-3 space-y-2">
                       {Array.from(relayStatus.entries()).map(([url, hasBackup]) => (
-                        <div key={url} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400 truncate mr-3">
+                        <div key={url} className="flex items-center gap-2 text-sm">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${hasBackup ? "bg-brand-green" : "bg-gray-600"}`} />
+                          <span className="text-gray-400 truncate">
                             {url.replace("wss://", "")}
-                          </span>
-                          <span className={hasBackup ? "text-pastel-green" : "text-gray-600"}>
-                            {hasBackup ? "backed up" : "no backup"}
                           </span>
                         </div>
                       ))}
@@ -365,6 +396,7 @@ export function BackupRestore({
             </div>
 
             <div className="pt-6 text-center space-y-1">
+              <p className="text-gray-500 text-xs">Built with Breez SDK Spark</p>
               <p className="text-gray-600 text-xs">
                 v{__APP_VERSION__} ({__BUILD_HASH__})
               </p>

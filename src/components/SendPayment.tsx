@@ -65,14 +65,14 @@ export function SendPayment({ balance, onBack }: SendPaymentProps) {
   return (
     <div className="min-h-screen bg-surface-base p-4">
       <div className="max-w-md mx-auto">
-        <div className="flex items-center gap-3 mb-6 pt-4">
+        <div className="flex items-center justify-between mb-6 pt-4">
+          <img src="/addy-logos/addy-logo-white.svg" alt="Addy" className="h-6 cursor-pointer" onClick={onBack} />
           <button
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 text-sm hover:text-white transition-colors"
             onClick={onBack}
           >
             &larr; Back
           </button>
-          <h2 className="text-xl font-bold text-white">Send</h2>
         </div>
 
         {error && (

@@ -42,22 +42,22 @@ export function TransactionHistory({ onBack }: TransactionHistoryProps) {
     <div className="min-h-screen bg-surface-base p-4">
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6 pt-4">
+          <img src="/addy-logos/addy-logo-white.svg" alt="Addy" className="h-6 cursor-pointer" onClick={onBack} />
           <div className="flex items-center gap-3">
             <button
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-pastel-blue text-sm hover:text-brand-blue transition-colors"
+              onClick={loadPayments}
+              disabled={loading}
+            >
+              {loading ? "Loading..." : "Refresh"}
+            </button>
+            <button
+              className="text-gray-400 text-sm hover:text-white transition-colors"
               onClick={onBack}
             >
               &larr; Back
             </button>
-            <h2 className="text-xl font-bold text-white">Transactions</h2>
           </div>
-          <button
-            className="text-pastel-blue text-sm hover:text-brand-blue transition-colors"
-            onClick={loadPayments}
-            disabled={loading}
-          >
-            {loading ? "Loading..." : "Refresh"}
-          </button>
         </div>
 
         {error && (

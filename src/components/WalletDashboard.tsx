@@ -30,6 +30,9 @@ interface WalletDashboardProps {
   seedBackedUp: boolean;
   restoredFromBackup: boolean;
   onDismissRestore: () => void;
+  initialConnectOpen?: boolean;
+  showBackupPrompt?: boolean;
+  onDismissBackupPrompt?: () => void;
 }
 
 type ConnectView = "none" | "options" | "nsec-login" | "create-keys";
@@ -54,6 +57,9 @@ export function WalletDashboard({
   seedBackedUp,
   restoredFromBackup,
   onDismissRestore,
+  initialConnectOpen,
+  showBackupPrompt,
+  onDismissBackupPrompt,
 }: WalletDashboardProps) {
   const [addressCopied, setAddressCopied] = useState(false);
   const [npubCopied, setNpubCopied] = useState(false);
@@ -64,7 +70,7 @@ export function WalletDashboard({
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [addressAvailable, setAddressAvailable] = useState<boolean | null>(null);
-  const [connectView, setConnectView] = useState<ConnectView>("none");
+  const [connectView, setConnectView] = useState<ConnectView>(initialConnectOpen ? "options" : "none");
   const [nsecInput, setNsecInput] = useState("");
   const [nsecError, setNsecError] = useState<string | null>(null);
   const [generatedKeys, setGeneratedKeys] = useState<GeneratedKeys | null>(null);
@@ -245,14 +251,7 @@ export function WalletDashboard({
             >
               Disconnect
             </button>
-          ) : (
-            <button
-              className="text-pastel-purple text-sm hover:text-brand-purple transition-colors"
-              onClick={() => setConnectView(connectView === "none" ? "options" : "none")}
-            >
-              Connect to Nostr
-            </button>
-          )}
+          ) : null}
         </div>
 
         {/* Restored from backup toast */}
@@ -265,6 +264,27 @@ export function WalletDashboard({
             >
               Dismiss
             </button>
+          </div>
+        )}
+
+        {/* Backup prompt after connecting Nostr */}
+        {showBackupPrompt && (
+          <div className="bg-brand-purple/15 border border-brand-purple/40 rounded-lg px-4 py-3 mb-4">
+            <p className="text-pastel-purple text-sm mb-2">Nostr connected! Back up your wallet to relays so you can restore it on any device.</p>
+            <div className="flex gap-2">
+              <button
+                className="flex-1 bg-brand-purple text-white rounded-lg px-3 py-2 text-sm hover:bg-brand-purple/80 transition-colors font-medium"
+                onClick={() => { onDismissBackupPrompt?.(); onBackup(); }}
+              >
+                Backup Now
+              </button>
+              <button
+                className="text-gray-400 text-xs hover:text-white px-3 transition-colors"
+                onClick={onDismissBackupPrompt}
+              >
+                Later
+              </button>
+            </div>
           </div>
         )}
 
@@ -640,12 +660,6 @@ export function WalletDashboard({
             <span>Backup &amp; Recovery</span>
             {!seedBackedUp && <span title="Seed phrase not backed up">⚠️</span>}
           </button>
-
-          {!isNostrUser && (
-            <p className="text-gray-500 text-xs text-center pt-2">
-              Connect to Nostr to enable cloud backup
-            </p>
-          )}
         </div>
       </div>
     </div>

@@ -19,6 +19,8 @@ function App() {
   const [walletIdentifier, setWalletIdentifier] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [restoredFromBackup, setRestoredFromBackup] = useState(false);
+  const [openConnectOnDashboard, setOpenConnectOnDashboard] = useState(false);
+  const [showBackupPrompt, setShowBackupPrompt] = useState(false);
   const isImporting = useRef(false);
   const isAutoLoading = useRef(false);
 
@@ -85,6 +87,7 @@ function App() {
             deleteMnemonic(oldSkipId);
             localStorage.removeItem("addy_skip_identifier");
             setWalletIdentifier(pubkey);
+            setShowBackupPrompt(true);
             setView("dashboard");
             return;
           }
@@ -122,6 +125,7 @@ function App() {
           isImporting.current = false;
           if (success) {
             localStorage.setItem("addy_seed_backed_up", "true");
+            localStorage.setItem("addy_nostr_backed_up", "true");
             setRestoredFromBackup(true);
             setView("dashboard");
           } else {
@@ -269,7 +273,7 @@ function App() {
           onSend={() => setView("send")}
           onReceive={() => setView("receive")}
           onTransactions={() => setView("transactions")}
-          onBackup={() => setView("backup")}
+          onBackup={() => { setOpenConnectOnDashboard(false); setView("backup"); }}
           onDisconnect={handleDisconnect}
           onRefreshBalance={wallet.refreshBalance}
           onNostrConnected={handleNostrConnected}
@@ -280,6 +284,10 @@ function App() {
           seedBackedUp={localStorage.getItem("addy_seed_backed_up") === "true"}
           restoredFromBackup={restoredFromBackup}
           onDismissRestore={() => setRestoredFromBackup(false)}
+          initialConnectOpen={openConnectOnDashboard}
+          showBackupPrompt={showBackupPrompt}
+          onDismissBackupPrompt={() => setShowBackupPrompt(false)}
+          key={openConnectOnDashboard ? "connect-open" : "default"}
         />
       );
 
@@ -302,8 +310,9 @@ function App() {
         <BackupRestore
           identifier={walletIdentifier || ""}
           authMethod={nostr.authMethod}
-          onBack={() => setView("dashboard")}
+          onBack={() => { setOpenConnectOnDashboard(false); setView("dashboard"); }}
           onDeleteWallet={handleDeleteWallet}
+          onConnectNostr={() => { setOpenConnectOnDashboard(true); setView("dashboard"); }}
         />
       );
 

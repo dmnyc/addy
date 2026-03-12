@@ -380,8 +380,18 @@ export function LoginScreen({
           </div>
         )}
       </div>
-      <p className="text-gray-500 text-xs text-center mt-4">Built with Breez SDK Spark</p>
-      <p className="text-gray-600 text-xs text-center mt-1">v{__APP_VERSION__} ({__BUILD_HASH__})</p>
+      <div className="text-center mt-4 space-y-1">
+        <p className="text-gray-500 text-xs">Built with Breez SDK Spark</p>
+        <p className="text-gray-600 text-xs">v{__APP_VERSION__} ({__BUILD_HASH__})</p>
+        <a
+          href="https://github.com/dmnyc/addy/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-600 text-xs hover:text-gray-400 transition-colors"
+        >
+          Report a bug
+        </a>
+      </div>
       </div>
     </div>
   );
