@@ -71,10 +71,7 @@ function parseBackupTag(
 }
 
 export function hasEncryptionSupport(): boolean {
-  // Check NIP-07 extension with NIP-44
-  if (typeof window !== "undefined" && window.nostr?.nip44) return true;
-
-  // Check if we have a private key signer (nostr-tools can handle NIP-44)
+  // Check if we have a private key signer
   try {
     const ndk = getNDK();
     const signer = ndk.signer as Record<string, unknown> | undefined;
@@ -84,6 +81,9 @@ export function hasEncryptionSupport(): boolean {
   } catch {
     // Fall through
   }
+
+  // Check NIP-07 extension with NIP-44
+  if (typeof window !== "undefined" && window.nostr?.nip44) return true;
 
   return false;
 }

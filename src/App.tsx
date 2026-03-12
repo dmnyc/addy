@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNostr } from "./hooks/useNostr";
 import { useWallet } from "./hooks/useWallet";
 import { LoginScreen } from "./components/LoginScreen";
-import { MnemonicBackup } from "./components/MnemonicBackup";
 import { WalletDashboard } from "./components/WalletDashboard";
 import { SendPayment } from "./components/SendPayment";
 import { ReceivePayment } from "./components/ReceivePayment";
@@ -17,10 +16,9 @@ function App() {
   const nostr = useNostr();
   const wallet = useWallet();
   const [view, setView] = useState<AppView>("login");
-  const [pendingMnemonic, setPendingMnemonic] = useState<string | null>(null);
   const [walletIdentifier, setWalletIdentifier] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
-  const isNewWallet = useRef(false);
+  const [restoredFromBackup, setRestoredFromBackup] = useState(false);
   const isImporting = useRef(false);
   const isAutoLoading = useRef(false);
 
@@ -123,6 +121,8 @@ function App() {
         wallet.importWallet(pubkey, mnemonic).then((success) => {
           isImporting.current = false;
           if (success) {
+            localStorage.setItem("addy_seed_backed_up", "true");
+            setRestoredFromBackup(true);
             setView("dashboard");
           } else {
             setWalletError("Failed to restore wallet from backup");
@@ -182,10 +182,13 @@ function App() {
     setWalletError(null);
     wallet
       .createWallet(id)
-      .then((mnemonic) => {
-        isNewWallet.current = true;
-        setPendingMnemonic(mnemonic);
-        setView("mnemonic-backup");
+      .then(() => {
+        setView("dashboard");
+        // Auto-register a default lightning address for new wallets
+        const defaultUsername = `addy${crypto.randomUUID().slice(0, 6)}`;
+        registerLightningAddress(defaultUsername).catch(() => {
+          // Non-critical — user can set it manually from dashboard
+        });
       })
       .catch((err) => {
         console.error("Failed to create wallet:", err);
@@ -193,32 +196,6 @@ function App() {
         setView("login");
       });
   }
-
-  const handleMnemonicConfirmed = useCallback(() => {
-    setPendingMnemonic(null);
-    setView("dashboard");
-
-    // Auto-register a default lightning address for new wallets
-    if (isNewWallet.current) {
-      isNewWallet.current = false;
-      const defaultUsername = `addy${crypto.randomUUID().slice(0, 6)}`;
-      registerLightningAddress(defaultUsername).catch(() => {
-        // Non-critical — user can set it manually from dashboard
-      });
-    }
-  }, []);
-
-  const handleMnemonicCancel = useCallback(async () => {
-    if (walletIdentifier) {
-      deleteMnemonic(walletIdentifier);
-    }
-    await wallet.disconnect();
-    localStorage.removeItem("addy_skip_identifier");
-    isNewWallet.current = false;
-    setPendingMnemonic(null);
-    setWalletIdentifier(null);
-    setView("login");
-  }, [wallet, walletIdentifier]);
 
   const handleDisconnect = useCallback(async () => {
     if (walletIdentifier) {
@@ -281,15 +258,6 @@ function App() {
         </div>
       );
 
-    case "mnemonic-backup":
-      return pendingMnemonic ? (
-        <MnemonicBackup
-          mnemonic={pendingMnemonic}
-          onConfirmed={handleMnemonicConfirmed}
-          onCancel={handleMnemonicCancel}
-        />
-      ) : null;
-
     case "dashboard":
       return (
         <WalletDashboard
@@ -309,6 +277,9 @@ function App() {
           connectWithPrivateKey={nostr.connectWithPrivateKey}
           generateKeypair={nostr.generateKeypair}
           isConnecting={nostr.isConnecting}
+          seedBackedUp={localStorage.getItem("addy_seed_backed_up") === "true"}
+          restoredFromBackup={restoredFromBackup}
+          onDismissRestore={() => setRestoredFromBackup(false)}
         />
       );
 

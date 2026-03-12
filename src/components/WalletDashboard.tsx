@@ -27,6 +27,9 @@ interface WalletDashboardProps {
   connectWithPrivateKey: (privateKeyHex: string) => Promise<string>;
   generateKeypair: () => GeneratedKeys;
   isConnecting: boolean;
+  seedBackedUp: boolean;
+  restoredFromBackup: boolean;
+  onDismissRestore: () => void;
 }
 
 type ConnectView = "none" | "options" | "nsec-login" | "create-keys";
@@ -48,6 +51,9 @@ export function WalletDashboard({
   connectWithPrivateKey,
   generateKeypair,
   isConnecting,
+  seedBackedUp,
+  restoredFromBackup,
+  onDismissRestore,
 }: WalletDashboardProps) {
   const [addressCopied, setAddressCopied] = useState(false);
   const [npubCopied, setNpubCopied] = useState(false);
@@ -248,6 +254,19 @@ export function WalletDashboard({
             </button>
           )}
         </div>
+
+        {/* Restored from backup toast */}
+        {restoredFromBackup && (
+          <div className="bg-brand-green/15 border border-brand-green/40 rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
+            <p className="text-pastel-green text-sm">Wallet restored from Nostr backup</p>
+            <button
+              className="text-pastel-green/60 hover:text-pastel-green text-xs ml-3 shrink-0"
+              onClick={onDismissRestore}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Connect to Nostr Panel */}
         {!isNostrUser && connectView !== "none" && (
@@ -615,10 +634,11 @@ export function WalletDashboard({
           </button>
 
           <button
-            className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-white transition-colors"
+            className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-white transition-colors flex items-center justify-between"
             onClick={onBackup}
           >
-            Backup &amp; Recovery
+            <span>Backup &amp; Recovery</span>
+            {!seedBackedUp && <span title="Seed phrase not backed up">⚠️</span>}
           </button>
 
           {!isNostrUser && (

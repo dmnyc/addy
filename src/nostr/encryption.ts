@@ -9,7 +9,31 @@ export interface EncryptionProvider {
 }
 
 export function getEncryptionProvider(): EncryptionProvider {
-  // Prefer NIP-07 extension with NIP-44 support
+  // If signed in with private key, use it directly (avoids triggering NIP-07 extension)
+  try {
+    const ndk = getNDK();
+    const signer = ndk.signer;
+    if (signer instanceof NDKPrivateKeySigner) {
+      const privKeyHex = signer.privateKey;
+      if (privKeyHex) {
+        const privKeyBytes = hexToBytes(privKeyHex);
+        return {
+          encrypt: async (pubkey: string, plaintext: string) => {
+            const key = nip44.v2.utils.getConversationKey(privKeyBytes, pubkey);
+            return nip44.v2.encrypt(plaintext, key);
+          },
+          decrypt: async (pubkey: string, ciphertext: string) => {
+            const key = nip44.v2.utils.getConversationKey(privKeyBytes, pubkey);
+            return nip44.v2.decrypt(ciphertext, key);
+          },
+        };
+      }
+    }
+  } catch {
+    // NDK not initialized, fall through
+  }
+
+  // Fall back to NIP-07 extension with NIP-44 support
   if (typeof window !== "undefined" && window.nostr?.nip44) {
     return {
       encrypt: (pubkey: string, plaintext: string) =>
@@ -17,26 +41,6 @@ export function getEncryptionProvider(): EncryptionProvider {
       decrypt: (pubkey: string, ciphertext: string) =>
         window.nostr!.nip44!.decrypt(pubkey, ciphertext),
     };
-  }
-
-  // Fallback: nostr-tools nip44 with private key
-  const ndk = getNDK();
-  const signer = ndk.signer;
-  if (signer instanceof NDKPrivateKeySigner) {
-    const privKeyHex = signer.privateKey;
-    if (privKeyHex) {
-      const privKeyBytes = hexToBytes(privKeyHex);
-      return {
-        encrypt: async (pubkey: string, plaintext: string) => {
-          const key = nip44.v2.utils.getConversationKey(privKeyBytes, pubkey);
-          return nip44.v2.encrypt(plaintext, key);
-        },
-        decrypt: async (pubkey: string, ciphertext: string) => {
-          const key = nip44.v2.utils.getConversationKey(privKeyBytes, pubkey);
-          return nip44.v2.decrypt(ciphertext, key);
-        },
-      };
-    }
   }
 
   throw new Error(

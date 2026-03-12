@@ -71,21 +71,38 @@ export function getNDK(): NDK {
 export async function ensureNDK(): Promise<NDK> {
   const ndk = ndkInstance ?? (await initializeNDK());
 
-  for (const relay of ndk.pool.relays.values()) {
-    if (relay.status === 1) return ndk;
-  }
+  // Wait for at least 2 relays (or all available) to connect, up to 5s
+  const totalRelays = ndk.pool.relays.size;
+  const target = Math.min(totalRelays, 2);
+
+  const connectedCount = () => {
+    let count = 0;
+    for (const relay of ndk.pool.relays.values()) {
+      if (relay.status === 1) count++;
+    }
+    return count;
+  };
+
+  if (connectedCount() >= target) return ndk;
 
   await new Promise<void>((resolve) => {
     let resolved = false;
     const done = () => {
       if (resolved) return;
-      resolved = true;
-      resolve();
+      if (connectedCount() >= target) {
+        resolved = true;
+        resolve();
+      }
     };
     for (const relay of ndk.pool.relays.values()) {
       relay.on("connect", done);
     }
-    setTimeout(done, 5000);
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve();
+      }
+    }, 5000);
   });
 
   return ndk;

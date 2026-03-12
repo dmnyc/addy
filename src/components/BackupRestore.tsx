@@ -43,6 +43,7 @@ export function BackupRestore({
 
   const [showNsec, setShowNsec] = useState(false);
   const [nsecCopied, setNsecCopied] = useState(false);
+  const [backupConfirmed, setBackupConfirmed] = useState(false);
 
   const isNostrUser = authMethod === "nip07" || authMethod === "private-key";
   const isPrivateKeyUser = authMethod === "private-key";
@@ -78,6 +79,7 @@ export function BackupRestore({
       const user = getCurrentUser();
       if (!user?.pubkey) throw new Error("Not logged in");
       await backupSparkToNostr(user.pubkey);
+      localStorage.setItem("addy_seed_backed_up", "true");
       setSuccess("Wallet backed up to Nostr relays");
       setTimeout(() => setSuccess(null), 3000);
       // Refresh relay status after backup
@@ -211,10 +213,11 @@ export function BackupRestore({
         {subView === "main" && (
           <div className="space-y-2">
             <button
-              className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-white transition-colors"
+              className="w-full bg-surface-card hover:bg-surface-raised border border-border-subtle rounded-xl px-5 py-4 text-left text-white transition-colors flex items-center justify-between"
               onClick={handleShowMnemonic}
             >
-              Show Recovery Phrase
+              <span>Show Recovery Phrase</span>
+              {localStorage.getItem("addy_seed_backed_up") !== "true" && <span title="Seed phrase not backed up">⚠️</span>}
             </button>
 
             {isPrivateKeyUser && nsecKey && (
@@ -240,7 +243,10 @@ export function BackupRestore({
                       onClick={() => {
                         navigator.clipboard.writeText(nsecKey);
                         setNsecCopied(true);
-                        setTimeout(() => setNsecCopied(false), 2000);
+                        setTimeout(() => {
+                          setNsecCopied(false);
+                          setShowNsec(false);
+                        }, 1500);
                       }}
                     >
                       {nsecCopied ? "Copied!" : "Copy to clipboard"}
@@ -376,17 +382,45 @@ export function BackupRestore({
             </div>
 
             {showMnemonic ? (
-              <div className="grid grid-cols-3 gap-2">
-                {mnemonic.split(" ").map((word, i) => (
-                  <div
-                    key={i}
-                    className="bg-surface-raised border border-border-subtle rounded-lg px-3 py-2 text-center"
-                  >
-                    <span className="text-pastel-purple text-xs mr-1">{i + 1}.</span>
-                    <span className="text-white text-sm font-mono">{word}</span>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  {mnemonic.split(" ").map((word, i) => (
+                    <div
+                      key={i}
+                      className="bg-surface-raised border border-border-subtle rounded-lg px-3 py-2 text-center"
+                    >
+                      <span className="text-pastel-purple text-xs mr-1">{i + 1}.</span>
+                      <span className="text-white text-sm font-mono">{word}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-brand-orange/10 border border-brand-orange/30 rounded-lg px-4 py-3">
+                  <p className="text-pastel-orange text-xs">
+                    Do not screenshot or share with anyone. Anyone with these words can access your wallet funds.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={backupConfirmed}
+                    onChange={(e) => setBackupConfirmed(e.target.checked)}
+                    className="accent-brand-purple"
+                  />
+                  <span className="text-gray-300 text-sm">I have saved my recovery phrase</span>
+                </label>
+                <button
+                  className="w-full bg-brand-purple text-white rounded-lg px-4 py-3 hover:bg-brand-purple/80 transition-colors disabled:opacity-50 font-medium"
+                  disabled={!backupConfirmed}
+                  onClick={() => {
+                    localStorage.setItem("addy_seed_backed_up", "true");
+                    setSubView("main");
+                    setShowMnemonic(false);
+                    setBackupConfirmed(false);
+                  }}
+                >
+                  Done
+                </button>
+              </>
             ) : (
               <button
                 className="w-full bg-surface-raised border border-border-subtle rounded-lg px-4 py-8 text-gray-400 hover:text-white transition-colors"
